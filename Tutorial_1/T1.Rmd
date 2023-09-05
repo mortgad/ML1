@@ -1,0 +1,232 @@
+---
+title: "ML1"
+author: "Morten Gade"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+# Load (or install) packages
+
+pacman::p_load(tidyverse)
+
+```
+
+
+# Problem 1
+
+```{r load data, include=FALSE}
+
+df = read.csv("./Tutorial_1/WestRoxbury.csv")
+
+```
+
+# Problem 2
+
+```{r}
+
+paste0("Columns: ", dim(df)[2])
+paste0("Rows: ", dim(df)[1])
+
+head(df, n = 2)
+
+# view(df)
+
+
+### View first 10 rows of column 1 ###
+
+# Option 1
+df[1:10,1]
+
+# Option 2
+data.frame(first_column = df[1:10, 1])
+
+### Show the first 10 rows of each of the columns ###
+
+head(df, n = 10)
+
+### Show the fifth row of the first 10 columns ###
+
+df[5, 1:10]
+
+### Show the whole first column ###
+
+data.frame(first_col = df[, 1])
+
+### Find the mean of the first col ###
+
+mean(df[, 1])
+
+### Find summary statistics for each column ###
+
+summary(df)
+
+### Check variables ###
+
+str(df)
+
+# Categorical variables: REMODEL
+
+df$REMODEL <- as.factor(df$REMODEL)
+
+levels(df$REMODEL)
+
+### EXPORT ###
+
+write.csv(df, "new_data.csv")
+
+```
+
+# Problem 3
+
+```{r}
+### Create vectors ###
+v1 = c(1, 2, 2, 1)
+v2 = c(2, 3, 3, 2)
+
+### Element wise addition, subtraction etc ###
+
+add = v1 + v2
+subtract = v1 - v2
+multiply = v1 * v2
+divide = v1 / v2
+
+### Concatenation ###
+v3 = c(v1, v2)
+
+### Create matrix ###
+
+mA = matrix(c(1,2,3,4,5,6), nrow = 2, ncol = 3, byrow = TRUE)
+
+
+### Print max value per row ###
+
+
+# Option 1: For loop
+for (i in 1:nrow(mA)) {
+  print(max(mA[i, ]))
+}
+
+# Option 2: apply()
+
+max_values <- apply(mA, 1, max)
+print(max_values)
+
+
+### Compute sum of each col and return it as a vector
+
+col_sums <- apply(mA, 2, sum)
+print(col_sums)
+
+### Sort first col in ASC ###
+
+sort(mA[,1], decreasing = FALSE)
+
+### Create mathematical function ###
+
+fx <- function(x) {
+  
+  if (x <= 0) { result = (-x)^3 }
+  else if (x > 1) { result = x^2 }
+  else { result = sqrt(x) }
+  return(result)
+  
+}
+
+fx(-1)
+fx(0.5)
+fx(2)
+
+### New function with for loop
+
+hx = function(x, n) {
+  
+  result = 1
+  
+  for (i in 1:n) 
+    {
+      result = result + (x^i)
+    }
+  
+  return(result)
+
+}
+
+hx(3, 3)
+
+### While loop ###
+
+func = function(x, n) {
+  
+  result = 1
+  
+  i <- 1
+  
+  while (i <= n ) {
+    
+    result = result + (x^i)
+    i <-  i + 1
+    
+  }
+  
+  return(result)
+  
+}
+
+func(3, 3)
+
+### Matrices without explicit listing numbers ###
+
+mB <- matrix(1, 4, 4)
+diag(mB) <- 0
+mB
+
+### mC for loop ###
+mC_vec <- c()  
+for (i in 1:16) {
+  if (i %in% c(2,3,6,9,16)) { 
+    print("YAY")
+    mC_vec <- append(mC_vec, i)
+    }
+  else { 
+    print("NEY")
+    mC_vec <- append(mC_vec, 0)
+    }
+}
+mC <- matrix(mC_vec, 4, 4, byrow = TRUE)
+mC
+
+### mC using apply ###
+
+mC_vec <- sapply(1:16, function(i) {
+  if (i %in% c(2,3,6,9,16)) { 
+    return(i)
+  } else {
+    return(0)
+  }
+})
+mC <- matrix(mC_vec, 4, 4, byrow = TRUE)
+mC
+
+### Using the index placement ###
+
+n <- 4
+mC <- matrix(0, nrow=n, ncol=n)  # Initialize a 4x4 matrix with zeros
+
+for (i in 1:n) {
+  for (j in 1:n) {
+    index <- (i-1)*n + j
+    if (index %in% c(2,3,6,9,16)) {
+      mC[i,j] <- index
+    }
+  }
+}
+
+print(mC)
+
+### Lightbulbs ###
+
+
+
+```
+
