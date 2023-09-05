@@ -226,7 +226,47 @@ print(mC)
 
 ### Lightbulbs ###
 
+n = 10
+m = matrix(0, n, n)
 
+for (v in 1:100) {
+  
+  for (i in 1:n) {
+    
+    for (j in 1:n) {
+      
+      index <- (i-1)*n + j
+      if ( index %% v == 0){
+        
+        if (m[i,j] == 0) {m[i,j] <- 1}
+        
+        else if (m[i,j] == 1) {m[i,j] <- 0}
+        
+        }
+    }
+  }
+}
+
+m
+
+### ChatGPT solution ###
+
+n <- 10
+m <- matrix(0, n, n)
+
+index_matrix <- outer(1:n, 1:n, FUN = function(i,j) (i-1)*n + j)
+index_matrix
+
+for (v in 1:100) {
+  
+  # Identify which values of index_matrix are divisible by v
+  flip_indices <- (index_matrix %% v == 0)
+  
+  # Flip the values in m where flip_indices is TRUE
+  m[flip_indices] <- 1 - m[flip_indices]
+}
+
+m
 
 ```
 
