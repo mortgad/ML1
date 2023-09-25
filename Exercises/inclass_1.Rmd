@@ -1,0 +1,74 @@
+---
+title: "ML1"
+author: "Morten Gade"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+# Load (or install) packages
+
+pacman::p_load(tidyverse, scales, ggplot2)
+
+```
+
+
+### Part 1
+
+```{r load data, include=FALSE}
+
+df <- read_tsv("../Data/boston_corrected.txt", skip = 9)
+
+dim(df)
+
+colSums(is.na(df))
+
+df <- df %>% select(-c(OBS., TOWN, `TOWN#`, TRACT, LON, LAT, MEDV))
+
+names(df) <- tolower(names(df))
+
+df <- df %>% rename(medv = cmedv)
+
+write.csv(df, "bostonBI.csv")
+
+```
+
+## Part 2
+
+```{r}
+# Provide summary statistics for the property tax and median value of housing in the boston districts. Are the two variables correlated?
+
+df %>% select(tax, medv) %>% summary()
+
+cor(df$tax, df$medv)
+
+# Provide a density plot of the median housing value. Change the x-Axis to US$-values
+
+ggplot(df) +
+  geom_density(aes(x = medv)) +
+  scale_x_continuous(labels=dollar)
+
+# Provide a histogram (binwidth = 5) of the property taxes.
+
+ggplot(df) +
+  geom_histogram(aes(x=tax), binwidth = 5)
+
+# Create an ordered factor variable ”tax2” with three possible entries
+
+df <- df %>% 
+  mutate(tax2 = ifelse(tax < 300, "low", ifelse(tax < 600, "medium", "high")),
+         tax2 = factor(tax2, levels = c("low", "medium", "high")))
+
+tapply(df$medv, df$tax2, summary)
+
+ggplot(df) +
+  geom_boxplot(aes(x = tax2, y = medv, fill = tax2)) +
+  theme_minimal()
+
+ggplot(df)+
+  geom_point(aes(x = tax, y = medv)) +
+  geom_smooth(aes(x = tax, y = medv), method = "lm")+
+  ylim(0, 50)
+
+```
+

@@ -1,0 +1,127 @@
+---
+title: "Data Visualization"
+author: "Morten Gade"
+date: "2023-09-11"
+output: html_document
+---
+
+```{r setup}
+pacman::p_load(tidyverse, scales, ggplot2)
+
+setwd("/Users/mortengade/BI/ML1")
+
+```
+
+```{r load data}
+
+cust <- read_csv("data/custdata.csv")
+```
+
+```{r}
+
+cust$sex <- as.factor(cust$sex)
+cust$marital.stat <- as.factor(cust$marital.stat)
+cust$housing.type <- as.factor(cust$housing.type)
+cust$state.of.res <- as.factor(cust$state.of.res)
+
+```
+
+```{r}
+
+summary(cust)
+
+```
+
+## Attach
+
+```{r}
+
+attach(cust)
+
+summary(age)
+
+detach(cust)
+
+summary(age)
+
+```
+
+# Check for missing values
+
+```{r}
+
+colSums(is.na(cust))
+
+cust$rowna <- rowSums((is.na(cust)))
+
+
+## Sentinel values
+
+summary(cust$age)
+
+cust %>% filter(age == 0)
+
+```
+
+
+## Visualization
+
+```{r}
+
+ggplot(cust) + geom_bar(aes(x=marital.stat), fill = "darkred") + theme_minimal()
+
+ggplot(cust) + 
+  geom_histogram(aes(x = age), binwidth = 1, fill = "white", color = "black") +
+  geom_density(aes(x = age, after_stat(count)), color="red") +
+  theme_minimal()
+
+```
+
+```{r, fig.height = 7.5}
+
+statedata <- as.data.frame( table(cust["state.of.res"]) )
+colnames(statedata) <- c("state", "count")
+statedata <- transform(statedata, state = reorder(state, count))
+
+statedata <- transform(statedata, state=reorder(state,count))
+
+ggplot(statedata) + geom_col(aes(x = state, y = count)) + coord_flip() +
+  theme_minimal()
+
+```
+```{r}
+
+cust$income1000 <- cust$income / 1000
+
+ggplot(cust) + geom_histogram(aes(x = income1000), binwidth = 10, fill = "white", color = "black")
+
+
+```
+## Scaling
+
+```{r}
+
+# Regular scaling
+ggplot(cust) +
+  geom_density(aes(x=income)) +
+  scale_x_continuous(labels=dollar)
+
+# Log scaling
+ggplot(cust) + 
+  geom_density(aes(x = income)) +
+  scale_x_log10(breaks = c(100, 1000, 10000, 100000), labels=dollar) +
+  annotation_logticks(sides = "b")
+
+```
+
+```{r}
+
+ggplot(cust) +
+  geom_bar(aes(x=health.ins, y = income1000, fill = marital.stat), stat = "summary", position = "dodge")
+
+
+ggplot(cust)+
+  geom_bar(aes(x = marital.stat, fill = health.ins), position = "dodge")
+
+```
+

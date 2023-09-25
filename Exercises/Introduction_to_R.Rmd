@@ -1,0 +1,189 @@
+---
+title: "ML1"
+author: "Morten Gade"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+# Load (or install) packages
+
+pacman::p_load(tidyverse, stringi)
+
+```
+
+# Simulated data and seeds
+
+```{r}
+
+# Using set.seed() to maintain similar random sequence
+set.seed(123)
+rnorm(50)
+
+# Adding vectors
+x = rnorm(50)
+y = x + rnorm(50, mean = 10, sd = 0.1)
+
+cor(x,y)
+
+```
+
+# Plotting
+
+```{r}
+
+jpeg("test.jpg")
+plot(x,y,
+     xlab = "Something X",
+     ylab = "Something Y",
+     main = "TITLE")
+dev.off()
+
+```
+
+# Contour plots
+
+```{r}
+
+x <- seq(-pi, pi, length = 50)
+y <- x
+f <- outer(x, y, function(x, y) cos(y) / (1 + x^2))
+
+contour(x, y, f)
+contour(x, y, f, nlevels = 45, add = T)
+
+fa <- (f - t(f)) / 2
+contour(x, y, fa, nlevels = 15)
+
+```
+
+# Image plot
+
+```{r}
+
+image(x, y, fa)
+persp(x, y, fa)
+persp(x, y, fa, theta = 30)
+persp(x, y, fa,theta = 30, phi = 20)
+persp(x, y, fa,theta = 30, phi = 70)
+persp(x, y, fa,theta = 30, phi = 40)
+
+```
+
+# Subsetting vectors
+
+```{r}
+
+v = c(1,2,3,4,5,6)
+
+v[v > 1 & v != 4 & v %% 2 == 0]
+
+subset(v, v > 2 & v != 3)
+
+```
+
+# For loops
+
+```{r}
+
+x = round(rnorm(1, mean = 50, sd = 20), 0)
+
+if (x %% 3 == 0 ) {
+  print("Divisible by three")
+  } else { 
+    print ("Not divisible") 
+  }
+
+
+### FOR LOOP ###
+
+x = sample(1:10, 1)
+for( i in 1:10 ) {
+  
+  
+  
+  if (i %% x == 0) {
+    print(paste0(i, " is divisible by ", x))
+  } else { print(paste0(i, " is not divisible by ", x)) }
+  
+}
+
+```
+
+## While loops
+
+```{r}
+
+n = 0
+while (n < 10) {
+  n = n + 1
+  print(n)
+}
+
+```
+```{r}
+
+for (i in -10:10) {
+  if (i<(-1)) {
+    print(i)
+  }
+}
+
+```
+## Custom functions
+
+```{r}
+
+my_func <- function(vec) {
+  sum = sum(vec)
+  return(sum)
+}
+
+
+hep <- function(int, x){
+  
+  if (int %% x == 0){
+    return(TRUE)
+  } else {return(FALSE)}
+  
+}
+
+hep(100, 4)
+
+```
+
+## Suppress printing 
+
+```{r, echo=FALSE}
+
+hep <- function(int, x){
+  
+  if (int %% x == 0){
+    return(TRUE)
+  } else {return(FALSE)}
+  
+}
+
+hep(100, 4)
+
+```
+
+## Dataframes
+
+```{r}
+
+
+df1 <- data.frame(hep = c(1,2,3), 
+                 cat = c("horse", "cat", "dog"))
+class(df)
+mode(df)
+
+df2 <- data.frame(numbers = seq(1,10,1), words = stri_rand_strings(10, 8))
+
+list_of_dfs <- list(df1 = df1, df2 = df2)
+
+list_of_dfs[1]
+list_of_dfs[[1]]
+
+```
+

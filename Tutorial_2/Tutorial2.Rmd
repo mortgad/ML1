@@ -1,0 +1,400 @@
+
+
+
+# Preprocessing
+
+
+
+```{r Visualize transformations}
+
+
+
+# Plot MSRP
+hist(df$MSRP)
+
+densityplot(df$MSRP)
+
+# Plot log transformation of MSRP
+hist(log(df$MSRP))
+
+# Looks good. Add the predictor
+
+df$log_MSRP <- log(df$MSRP)
+
+# Plot Box Cox transformation
+
+range(df$MSRP)
+
+### !!! NO NEGATIVE OR ZERO VALUES --> NO NEED FOR BoxCox transformation ###
+
+
+```
+
+```{r Missing data}
+
+# There is missing data in three columns: 
+# - Engine.HP (Horse Power)
+# - Engine.Cylinders
+# - Number.Of.Doors
+# 
+# It seems pretty random. So for MAR we can either delete or impute.
+# 
+# Imputing method: Mean
+
+colSums(is.na(df))
+
+na_rows <- df %>% filter(rowSums(is.na(.)) > 0)
+
+mean(df$Engine.HP, na.rm = TRUE)
+mean(df$Engine.Cylinders, na.rm = TRUE)
+
+df <- df %>% mutate(across(c(Engine.HP, Engine.Cylinders, Number.of.Doors), ~replace_na(., round(mean(., na.rm=TRUE), 0))))
+
+```
+
+```{r Zero or near zero variance, fig.height = 7.5, fig.width = 7.5}
+
+numeric_columns <- sapply(df, is.numeric)
+num_df <- df[, numeric_columns]
+caret::nearZeroVar(num_df, names = FALSE, freqCut = 75/25)
+
+# The variable "Number.Of.Doors" is the predictor with lowest variance. 
+# It does not pass the test with a freqCut of 70/30, signifying that the most frequent value occurs more frequently than 2.3 times the frequency of the 
+# next most common value.
+
+
+
+
+```
+
+```{r Numeric columns}
+
+## Check distributions
+
+histograms <- lapply(names(num_df), function(col_name) {
+  col <- num_df[[col_name]]
+  hist(col, main = paste("Histogram of", col_name), xlab = col_name, col = "lightblue", border = "black")
+})
+
+# Identify outliers
+
+# Step 1: Scale all numeric values
+# Step 2: Filter out rows where a scaled value is above 10 or below -10
+
+# 1
+num_df_scaled <- as.data.frame(scale(num_df))
+
+# 2
+num_df_scaled <- num_df_scaled[rowSums(num_df_scaled[] >= 10) == 0, ]
+
+```
+
+```{r}
+factor_columns <- sapply(df, is.factor)
+factor_df <- df[, factor_columns]
+
+lapply(names(factor_df), function(col_name) {
+  col <- factor_df[[col_name]] 
+  ggplot(factor_df)+
+    geom_bar(aes(x = factor_df[[col_name]]))+
+    labs(title = paste(col_name), x = "")+
+    theme_minimal()+
+    theme(axis.text.x = element_text(angle = 45, vjust = 0.7, hjust = 1))
+})
+```
+
+
+# Useful
+
+
+
+count(df) %>% arrange(n)
+
+
+# Problem 1
+
+1. Upload the data in RStudio and familiarize yourself with the variables and their meaning.
+
+```{r setup}
+
+pacman::p_load(tidyverse, caret, forecast, rsample, DataExplorer, recipes, Metrics)
+
+df <- read.csv("data.csv")
+
+```
+
+2. Check the variable type (e.g., factor, integer, numeric, etc.) and adapt it to the variable described in the text.
+
+```{r Change data types}
+
+df <- df %>% 
+  mutate(Make = factor(Make),
+         Year = factor(Year),
+         Engine.Fuel.Type = factor(Engine.Fuel.Type),
+         Transmission.Type = factor(Transmission.Type),
+         Driven_Wheels = factor(Driven_Wheels),
+         Market.Category = factor(Market.Category),
+         Vehicle.Size = factor(Vehicle.Size),
+         Vehicle.Style = factor(Vehicle.Style))
+    
+```
+
+3. Delete the variable “Model” from the dataset and reflect on the reason for deletion
+
+```{r}
+
+df <- df %>% select(-Model)
+
+```
+
+
+4. Set a seed and randomly partition the data into training and test set (70%/30%)
+
+```{r}
+set.seed(123)
+
+split <- initial_split(df, prop = 0.7, strata = "MSRP")
+train_df  <- training(split)
+test_df   <- testing(split)
+
+```
+
+
+5. Evaluate MSRP distribution and check various transformations to normalize it. Considering the target engineering methods discussed in the course, decide what transformation will be most appropriate.
+
+```{r}
+
+par(mfrow=c(1,3))
+    
+hist(df$MSRP, breaks = 20, 
+     col = "red", border = "red", 
+     ylim = c(0, 800))
+
+# log if all value are positive
+transformed_response <- log(df$MSRP)
+    
+# Box-Cox transformation (lambda=0 is equivalent to log(x))
+transformed_response_BC <- forecast::BoxCox(df$MSRP, 
+                                            lambda="auto")
+    
+hist(transformed_response, breaks = 20, 
+     col = "lightgreen", border = "lightgreen",
+     ylim = c(0, 800) )
+
+hist(transformed_response_BC, breaks = 20, 
+     col = "lightblue", border = "lightblue", 
+     ylim = c(0, 800))
+
+# Log transformation is most appropriate as there are no zero-values or negative values
+
+```
+
+6. Evaluate the missing data. Decide which method of treating missing data will be applied.
+
+```{r}
+
+colSums(is.na(df))
+
+plot_missing(df)
+
+df %>%
+  is.na() %>%
+  reshape2::melt() %>%
+  ggplot(aes(Var2, Var1, fill=value)) + 
+  geom_raster() + 
+  coord_flip() +
+  scale_y_continuous(NULL, expand = c(0, 0)) +
+  scale_fill_grey(name = "", 
+                  labels = c("Present", 
+                             "Missing")) +
+  xlab("Observation") +
+  theme(axis.text.y  = element_text(size = 4))
+
+doors_na <- df %>% filter(is.na(Number.of.Doors))
+cylinders_na <- df %>% filter(is.na(Engine.Cylinders))
+HP_na <- df %>% filter(is.na(Engine.HP))
+
+# No systematicity in NAs for the three predictors
+
+# How to handle them? Considering the very low percentage of NAs it is mostly irrelevant how they are handled (imputed / removed)
+
+# I will impute using median
+
+```
+
+
+7. Evaluate the features with zero and near-zero variance. Decide which variables will be eliminated.
+
+```{r}
+
+caret::nearZeroVar(df, saveMetrics = TRUE) %>% 
+  tibble::rownames_to_column() %>% 
+  filter(nzv)
+
+# No variables will be eliminated
+
+
+```
+
+8. Display the distributions of the numeric features. Decide what type of pre-processing to be implemented later.
+
+```{r}
+
+plot_histogram(select(df, -MSRP))
+
+df_num <- df[sapply(df, is.numeric)]
+df_num_scaled <- df_num %>% select(-MSRP) %>% scale(center = TRUE, scale = TRUE)
+
+plot_histogram(df_numeric)
+
+df_num_long <- df_num %>% reshape2::melt()
+df_num_long_scaled <- df_num_scaled %>% reshape2::melt()
+
+# Check that the predictor value ranges are similar
+ggplot(df_num_long, aes(x = variable, y = value))+
+  geom_point()+
+  coord_flip()
+
+ggplot(df_num_long_scaled, aes(x = Var2, y = value))+
+  geom_point()+
+  coord_flip()
+
+colSums(df_num_scaled, na.rm = T) # Confirm that col sums equal zero (mean centered)
+
+# Scale and center numeric variables
+
+```
+
+
+9. Display the distributions of factor features. Decide what type of pre-processing to be implemented later.
+
+```{r}
+plot_bar(df)
+
+# The Make and Year predictors are problematic, as is the Vehicle.Style and maybe the Engine.Fuel.Type
+
+df %>% count(Make) %>% arrange(n)
+df %>% count(Year) %>% arrange(n)
+df %>% count(Vehicle.Style) %>% arrange(n)
+df %>% count(Engine.Fuel.Type) %>% arrange(n)
+
+# Use Lumping on all
+# Then use dummy encoding - but what about Year? I will just go ahead and do it, but seems weird 
+```
+
+
+10. Based on the data exploration above, proceed by creating a blueprint that prepares the data for predicting MSRP, using the recipes package. 
+
+More specifically,
+  • Set up a recipe including all the steps desired for data pre-processing. 
+  • Reflect on the order of these steps and how they will influence the final dataset.
+  • Prepare and bake the training and testing data. Finally, you should have two datasets (baked train and baked test) ready for analysis.
+  • Display the size of the new datasets. Conclude how they changed compared to the original datasets.
+
+```{r}
+
+my_recipe <- recipe(MSRP ~ ., data = train_df) %>%
+  step_log(all_outcomes()) %>% 
+  step_impute_median(all_numeric(), -all_outcomes()) %>% 
+  step_center(all_numeric(), -all_outcomes()) %>% 
+  step_scale(all_numeric(), -all_outcomes()) %>% 
+  step_other(all_factor(), threshold = 0.01, other = "Other") %>% 
+  step_dummy(all_factor(), one_hot = FALSE)
+  
+prepare <- prep(my_recipe, training = train_df)
+prepare
+
+baked_train <- bake(prepare, new_data = train_df)
+baked_test <- bake(prepare, new_data = test_df)
+
+baked_train
+baked_test
+
+dim(train_df)
+dim(baked_train)
+
+dim(test_df)
+dim(baked_test)
+
+```
+
+11. Reflect on the possibility of developing the blueprint within each resample iteration. If time allows, implement this approach in the caret library when training a knn regression model to predict MSRP (see an example in the lecture)
+
+```{r}
+
+#######################################################################################################
+########################################### ALTERNATIVE 2 #############################################
+#######################################################################################################
+
+# Specify re-sampling strategy: k-fold cross-validation
+cv <- trainControl(
+  method = "repeatedcv", 
+  number = 10, 
+  repeats = 1
+)
+    
+# Create a grid of values for the hyperparameter k
+hyper_grid <- expand.grid(k = seq(1, 10, by = 1))
+
+# Tune a knn model using grid search
+knn_fit <- train(
+  MSRP ~ ., 
+  data = baked_train, 
+  method = "knn", 
+  trControl = cv, 
+  tuneGrid = hyper_grid,
+  metric = "RMSE"
+)
+
+knn_fit
+
+knn_fit$resample$RMSE
+
+# Plot cv-error
+ggplot(knn_fit)
+
+# Test error (on test data)
+predictions = predict(knn_fit, newdata=baked_test)
+predictions
+
+rmse(baked_test$MSRP, predictions)
+
+#######################################################################################################
+########################################### ALTERNATIVE 3 #############################################
+#######################################################################################################
+
+# Re-sampling plan
+cv2 <- trainControl(
+  method = "repeatedcv", 
+  number = 10, 
+  repeats = 2)
+
+# Grid of hyperparameter values
+hyper_grid2 <- expand.grid(k = seq(1, 10, by = 1))
+
+# The model
+knn_fit2 <- train(
+  my_recipe,
+  data = train_df, 
+  method = "knn", 
+  trControl = cv2, 
+  tuneGrid = hyper_grid2,
+  metric = "RMSE"
+)
+
+knn_fit2
+
+# visual display of RMSEA vs. k
+ggplot(knn_fit2)
+
+ # Apply recipe to new data (test)
+# Since the recipe is inside of model, we do not give predict()
+# the baked data; instead we use predict() and the original test set.
+predictions2 <- predict(knn_fit2, test_df)
+predictions2
+
+# the test RMSEA 
+rmse(log(test_df$MSRP), predictions2)
+
+```
+

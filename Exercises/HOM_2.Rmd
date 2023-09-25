@@ -1,0 +1,36 @@
+---
+title: "HOM_2"
+author: "Morten Gade"
+date: "2023-09-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+pacman::p_load(dplyr, ggplot2, rsample, caret, h2o, AmesHousing, modeldata)
+
+h2o.no_progress()
+h2o.init()
+```
+
+# Load data and convert to H2O objects
+
+```{r}
+# Ames housing data
+ames <- AmesHousing::make_ames()
+ames.h2o <- as.h2o(ames)
+
+# Job attrition data
+data("attrition")
+
+churn <- attrition %>% 
+  mutate_if(is.ordered, .funs = factor, ordered = FALSE)
+churn.h2o <- as.h2o(churn)
+
+churn.h2o %>% View()
+
+```
+
+
+
